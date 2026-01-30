@@ -118,6 +118,19 @@ export function createTestContext(
     >,
   );
 
+  vi.spyOn(context.env.SCHEDULED_PUBLISH_WORKFLOW, "get").mockResolvedValue({
+    ...mockWorkflowInstance,
+    terminate: vi.fn(),
+  } as unknown as Awaited<
+    ReturnType<Env["SCHEDULED_PUBLISH_WORKFLOW"]["get"]>
+  >);
+
+  vi.spyOn(context.env.SCHEDULED_PUBLISH_WORKFLOW, "create").mockResolvedValue(
+    mockWorkflowInstance as unknown as Awaited<
+      ReturnType<Env["SCHEDULED_PUBLISH_WORKFLOW"]["create"]>
+    >,
+  );
+
   return context;
 }
 

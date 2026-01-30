@@ -508,6 +508,7 @@ describe("PostService", () => {
         params: {
           postId: id,
           isPublished: true,
+          publishedAt: expect.any(String),
         },
       });
     });
