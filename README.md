@@ -240,3 +240,7 @@ bun dev
 > ```bash
 > wrangler d1 migrations apply DB
 > ```
+
+## 贡献
+
+欢迎贡献代码、报告问题或提出建议！请查看 [CONTRIBUTING.md](./CONTRIBUTING.md) 了解开发指南和代码规范。

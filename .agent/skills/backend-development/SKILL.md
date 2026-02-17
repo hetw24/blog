@@ -62,41 +62,27 @@ export async function createEmptyPost(context: DbContext) {
 
 ```typescript
 import { createServerFn } from "@tanstack/react-start";
-import {
-  adminMiddleware,
-  createCacheHeaderMiddleware,
-  createRateLimitMiddleware,
-} from "@/lib/middlewares";
+import { adminMiddleware, dbMiddleware, createRateLimitMiddleware } from "@/lib/middlewares";
 
-// Public endpoint with caching
-export const getPostsFn = createServerFn()
+// Public endpoint with rate limiting
+export const createCommentFn = createServerFn()
   .middleware([
-    createRateLimitMiddleware({
-      capacity: 60,
-      interval: "1m",
-      key: "posts:list",
-    }),
-    createCacheHeaderMiddleware("swr"), // Sets Cache-Control headers
+    createRateLimitMiddleware({ capacity: 10, interval: "1m", key: "comments:create" }),
   ])
-  .inputValidator(GetPostsInputSchema)
-  .handler(({ data, context }) => PostService.getPosts(context, data));
+  .handler(({ data, context }) => CommentService.createComment(context, data));
 
-// Admin endpoint (private cache + auth required)
+// Public endpoint (database only)
+export const getPostsFn = createServerFn()
+  .middleware([dbMiddleware])
+  .handler(({ context }) => PostService.getPosts(context));
+
+// Admin endpoint (auth + admin role required)
 export const updatePostFn = createServerFn()
-  .middleware([adminMiddleware]) // Includes dbMiddleware + sessionMiddleware + auth check + private cache
-  .inputValidator(UpdatePostInputSchema)
+  .middleware([adminMiddleware]) // Includes dbMiddleware + sessionMiddleware + auth check + admin check
   .handler(({ data, context }) => PostService.updatePost(context, data));
 ```
 
-#### Cache Header Strategies
-
-| Strategy      | Header                 | Use Case             |
-| :------------ | :--------------------- | :------------------- |
-| `"private"`   | no-store, private      | Auth/admin responses |
-| `"immutable"` | Long-term immutable    | Hashed static assets |
-| `"swr"`       | Stale-while-revalidate | General caching      |
-
-> For detailed caching patterns (KV layer, versioned invalidation, CDN purge), see the **caching-strategies** skill.
+> For CDN caching patterns (Cache-Control headers via page or Hono routes), see the **caching-strategies** skill.
 
 ## Schema Definitions (`[name].schema.ts`)
 
@@ -151,12 +137,11 @@ Middlewares progressively inject dependencies and enforce policies.
 
 ### Policy Middlewares
 
-| Middleware                              | Purpose                                 | Depends On          |
-| :-------------------------------------- | :-------------------------------------- | :------------------ |
-| `authMiddleware`                        | Requires valid session (401 if missing) | `sessionMiddleware` |
-| `adminMiddleware`                       | Requires admin role (403 if not admin)  | `authMiddleware`    |
-| `createCacheHeaderMiddleware(strategy)` | Sets Cache-Control headers              | (none)              |
-| `createRateLimitMiddleware(options)`    | Calls Durable Object for rate limiting  | `sessionMiddleware` |
+| Middleware                        | Purpose                                 | Depends On          |
+| :-------------------------------- | :-------------------------------------- | :------------------ |
+| `authMiddleware`                  | Requires valid session (401 if missing) | `sessionMiddleware` |
+| `adminMiddleware`                 | Requires admin role (403 if not admin)  | `authMiddleware`    |
+| `createRateLimitMiddleware(opts)` | Rate limiting via Durable Object        | (none)              |
 
 ### Middleware Chain Example
 
